@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Input and Download Button</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            max-width: 400px;
+            margin: 50px auto;
+            text-align: center;
+        }
+
+        .input-field {
+            padding: 10px;
+            margin-bottom: 20px;
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        .download-btn {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+
+        .download-btn:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <input onchange="handleChange(event)" type="text" class="input-field" placeholder="Enter something...">
+        <button onclick="handlePostUrl()" class="download-btn">Download</button>
+
+    </div>
+
+
+    <script>
+
+        let url = ""
+
+        const handleChange = (e) => {
+            url = e.target.value;
+        }
+
+        const handlePostUrl = async () => {
+            // let response = await fetch(`/searchByUrl/${url}`, {
+            //     method: "POST",
+            //     headers: {
+            //         "Content-Type": "application/json",
+            //         // 'Content-Type': 'application/x-www-form-urlencoded',
+            //     },
+            // }
+
+            // )
+            const response = await fetch("/youtube-content")
+
+            let data = await response.json();
+            console.log(data)
+
+
+        }
+
+        console.log("hello25423")
+    </script>
+
+</body>
+
+</html>
