@@ -1,0 +1,133 @@
+<!-- public/index.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Video Player</title>
+    <style>
+        video {
+            max-height: 200px !important;
+        }
+
+        button {
+            padding: 4px;
+            border-radius: 12px;
+
+        }
+    </style>
+</head>
+
+<body>
+    <h1>YouTube Video Player</h1>
+    <input type="text" id="videoURL" placeholder="Enter YouTube Video URL">
+    <button onclick="playVideo()">Play Video</button>
+    <br><br>
+    <video id="videoPlayer" controls></video>
+
+    <br>
+    <br>
+    <h1>YouTube Video Downloader</h1>
+    <input type="text" id="videoURL2" placeholder="Enter YouTube Video URL">
+    <button onclick="getVideoInfo()">Get Video Info</button>
+    <br><br>
+    <select id="qualitySelect"></select>
+    <button onclick="downloadVideo()">Download</button>
+
+    <script>
+        async function playVideo() {
+            const videoURL = document.getElementById('videoURL').value;
+            if (!videoURL) {
+                alert('Please enter a YouTube video URL');
+                return;
+            }
+
+            const videoPlayer = document.getElementById('videoPlayer');
+            videoPlayer.src = `/video?url=${encodeURIComponent(videoURL)}`;
+            videoPlayer.load();
+        }
+
+        // Client-side code
+        // async function getVideoInfo() {
+        //     const videoURL = document.getElementById('videoURL').value;
+        //     if (!videoURL) {
+        //         alert('Please enter a YouTube video URL');
+        //         return;
+        //     }
+
+        //     const response = await fetch(`/video-info?url=${encodeURIComponent(videoURL)}`);
+        //     const formats = await response.json();
+
+        //     const qualitySelect = document.getElementById('qualitySelect');
+        //     qualitySelect.innerHTML = '';
+
+        //     // Filter formats to include only those with video and audio, or just audio
+        //     const formatsWithAudio = formats.filter(format => format.hasAudio);
+        //     const formatsWithoutAudio = formats.filter(format => !format.hasAudio);
+
+        //     // If there are formats with audio available, prioritize those
+        //     // const availableFormats = formatsWithAudio.length > 0 ? formatsWithAudio : formatsWithoutAudio;
+
+        //     // Sort filtered formats by resolution (descending order)
+        //     // availableFormats.sort((a, b) => b.width - a.width);
+
+        //     availableFormats.forEach(format => {
+        //         const option = document.createElement('option');
+        //         option.value = format.itag;
+        //         option.textContent = `${format.qualityLabel} (${format.container}) - ${format.codecs} - ${format.bitrate}`;
+        //         qualitySelect.appendChild(option);
+        //     });
+        // }
+
+        async function getVideoInfo() {
+            const videoURL = document.getElementById('videoURL2').value;
+            if (!videoURL) {
+                alert('Please enter a YouTube video URL');
+                return;
+            }
+
+            const response = await fetch(`/video-info?url=${encodeURIComponent(videoURL)}`);
+            const formats = await response.json();
+
+            const qualitySelect = document.getElementById('qualitySelect');
+            qualitySelect.innerHTML = '';
+
+            // Sort formats by resolution (descending order)
+            formats.sort((a, b) => b.width - a.width);
+
+            formats.forEach(format => {
+                const option = document.createElement('option');
+                option.value = format.itag;
+                option.textContent = `${format.qualityLabel} (${format.container}) - ${format.codec} - ${format.bitrate}`;
+                qualitySelect.appendChild(option);
+            });
+        }
+
+
+        async function downloadVideo() {
+            const videoURL = document.getElementById('videoURL2').value;
+            const itag = document.getElementById('qualitySelect').value;
+            if (!videoURL || !itag) {
+                alert('Please select a video quality');
+                return;
+            }
+
+            const response = await fetch(`/download?url=${encodeURIComponent(videoURL)}&itag=${itag}`);
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'video_with_audio.mp4'; // Change the filename if needed
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+
+
+    </script>
+</body>
+
+</html>
