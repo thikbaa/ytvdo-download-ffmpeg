@@ -33,6 +33,7 @@
     <input type="text" id="videoURL2" placeholder="Enter YouTube Video URL">
     <button onclick="getVideoInfo()">Get Video Info</button>
     <br><br>
+    <select id="qualityLabel"></select>
     <select id="qualitySelect"></select>
     <button onclick="downloadVideo()">Download</button>
 
@@ -81,6 +82,8 @@
         //     });
         // }
 
+        // const qualityLabel = document.getElementById('qualityLabel');
+
         async function getVideoInfo() {
             const videoURL = document.getElementById('videoURL2').value;
             if (!videoURL) {
@@ -92,6 +95,7 @@
             const formats = await response.json();
 
             const qualitySelect = document.getElementById('qualitySelect');
+            
             qualitySelect.innerHTML = '';
 
             // Sort formats by resolution (descending order)
@@ -100,8 +104,11 @@
             formats.forEach(format => {
                 const option = document.createElement('option');
                 option.value = format.itag;
-                option.textContent = `${format.qualityLabel} (${format.container}) - ${format.codec} - ${format.bitrate}`;
+                option.textContent = `${format.qualityLabel} (${format.container}) - ${format.itag} - ${format.bitrate} ${format.quality}`;
                 qualitySelect.appendChild(option);
+
+                // const option2 = document.createElement('option');
+                // qualityLabel.innerHTML= `${format.qualityLabel}`
             });
         }
 
