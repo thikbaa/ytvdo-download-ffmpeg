@@ -17,6 +17,11 @@
             border-radius: 12px;
 
         }
+        #progressBar{
+
+            color: red;
+            background-color: red;
+        }
     </style>
 </head>
 
@@ -33,9 +38,12 @@
     <input type="text" id="videoURL2" placeholder="Enter YouTube Video URL">
     <button onclick="getVideoInfo()">Get Video Info</button>
     <br><br>
-    <select id="qualityLabel"></select>
+  
     <select id="qualitySelect"></select>
     <button onclick="downloadVideo()">Download</button>
+  <select id="qualitySelect2"></select>
+    <button onclick="downloadMyVideo()">Download</button>
+    <div id="progressBar"></div>
 
     <script>
         async function playVideo() {
@@ -95,20 +103,27 @@
             const formats = await response.json();
 
             const qualitySelect = document.getElementById('qualitySelect');
-            
+            const qualitySelect2 = document.getElementById('qualitySelect2');
+
             qualitySelect.innerHTML = '';
+            const formatsWithAudio = formats.filter(format => format.hasAudio);
+            const formatsWithoutAudio = formats.filter(format => !format.hasAudio);
 
             // Sort formats by resolution (descending order)
-            formats.sort((a, b) => b.width - a.width);
+            formatsWithoutAudio.sort((a, b) => b.width - a.width);
 
-            formats.forEach(format => {
+            formatsWithAudio.forEach(format => {
+                const option2 = document.createElement('option');
+                option2.value = format.itag;
+                option2.textContent = `${format.qualityLabel} (${format.container}) - ${format.itag} - ${format.bitrate} ${format.quality}`;
+                qualitySelect2.appendChild(option2);
+            });
+
+            formatsWithoutAudio.forEach(format => {
                 const option = document.createElement('option');
                 option.value = format.itag;
                 option.textContent = `${format.qualityLabel} (${format.container}) - ${format.itag} - ${format.bitrate} ${format.quality}`;
                 qualitySelect.appendChild(option);
-
-                // const option2 = document.createElement('option');
-                // qualityLabel.innerHTML= `${format.qualityLabel}`
             });
         }
 
@@ -121,17 +136,61 @@
                 return;
             }
 
-            const response = await fetch(`/download?url=${encodeURIComponent(videoURL)}&itag=${itag}`);
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'video_with_audio.mp4'; // Change the filename if needed
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
+            window.location.href = `/download?url=${encodeURIComponent(videoURL)}&itag=${itag}`;
+
+
+            // const response = await fetch(`/download?url=${encodeURIComponent(videoURL)}&itag=${itag}`);
+            // const totalSize = parseInt(response.headers.get('content-length'));
+            // const progressBar = document.getElementById('progressBar');
+
+            // if (!totalSize) {
+            //     alert('Cannot determine file size. Download may not show progress.');
+            // }
+
+            // const filename = response.headers.get('filename') // Extract filename from content-disposition header
+
+            // // Update the download progress
+            // const updateProgress = (loaded, total) => {
+            //     const percentComplete = (loaded / total) * 100;
+            //     progressBar.style.width = `${percentComplete}%`;
+            // };
+
+            // // Download progress event listener
+            // response.body.onprogress = (event) => {
+            //     updateProgress(event.loaded, totalSize);
+            // };
+
+            // // Create a blob from the response data
+            // const blob = await response.blob();
+
+            // // Create a URL for the blob
+            // const url = window.URL.createObjectURL(blob);
+
+            // // Create a link element to trigger the download
+            // const a = document.createElement('a');
+            // a.href = url;
+            // a.download = filename;
+            // document.body.appendChild(a);
+
+            // // Trigger the download
+            // a.click();
+
+            // // Revoke the object URL to release memory
+            // window.URL.revokeObjectURL(url);
         }
 
+        //// here download video with audio already
+
+        async function downloadMyVideo() {
+            const videoURL = document.getElementById('videoURL2').value;
+            const itag = document.getElementById('qualitySelect2').value;
+            if (!videoURL || !itag) {
+                alert('Please select a video quality');
+                return;
+            }
+
+            window.location.href = `/download-alraudio?url=${encodeURIComponent(videoURL)}&itag=${itag}`;
+        }
 
 
     </script>

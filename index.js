@@ -3,10 +3,10 @@ const app = express();
 import ytdl from "ytdl-core";
 import ffmpeg from 'fluent-ffmpeg'
 // import ffmpegPath from '@ffmpeg-installer/ffmpeg'
-import path from "path"
-const __dirname = path.resolve();
-import fs from "fs"
-import tmp from 'tmp';
+// import path from "path"
+// const __dirname = path.resolve();
+// import fs from "fs"
+// import tmp from 'tmp';
 
 import ffmpegPath from 'ffmpeg-static';
 import cp from 'child_process';
@@ -128,13 +128,66 @@ app.get('/download', async (req, res) => {
             return res.status(400).send('Video URL and itag are required');
         }
 
-        ytmixer(videoURL, itag).pipe(res);
+        const info = await ytdl.getInfo(videoURL);
+        const sanitizedTitle = info.videoDetails.title.replace(/[^a-z0-9]/gi, '_'); // Replace invalid characters with underscores
+        const myFormat = info.formats.filter((format) => {
+            return format.itag === itag
+        });
+
+        // console.log(myFormat)
+        let contentLengthInBytes = myFormat[0].contentLength;
+        // Convert bytes to megabytes
+        const contentLengthInMB = Math.ceil(contentLengthInBytes / (1000 * 1000));
+
+        console.log('File size:', contentLengthInMB, 'MB');
+        const videoStream = ytmixer(videoURL, itag);
+
+        // Set Content-Disposition header to force download
+        res.header('Content-Disposition', `attachment; filename="${sanitizedTitle}.mp4"`);
+        res.header('Content-Type', 'video/mp4');
+
+        // Pipe the video stream to the response
+        videoStream.pipe(res);
 
     } catch (error) {
         console.error(error);
         res.status(500).send('Internal Server Error');
     }
 });
+
+
+app.get('/download-alraudio', async (req, res) => {
+    try {
+        const videoURL = req.query.url;
+        const itag = req.query.itag;
+
+        if (!videoURL || !itag) {
+            return res.status(400).send('Video URL and itag are required');
+        }
+
+        // Get video stream
+        const videoStream = ytdl(videoURL, { filter: format => format.itag === parseInt(itag) });
+
+        const info = await ytdl.getInfo(videoURL);
+        const sanitizedTitle = info.videoDetails.title.replace(/[^a-z0-9]/gi, '_'); // Replace invalid characters with underscores
+       
+
+        // Set response headers
+
+        res.header('Content-Disposition', `attachment; filename="${sanitizedTitle}.mp4"`);
+        res.header('Content-Type', 'video/mp4');
+
+        // Pipe video stream to response
+        videoStream.pipe(res);
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+
+
 
 
 
