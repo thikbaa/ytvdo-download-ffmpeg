@@ -16,7 +16,7 @@ import stream from 'stream';
 ffmpeg.setFfmpegPath(ffmpegPath);
 
 // Serve static files
-app.use(express.static('public'));
+app.use(express.static(path.resolve(__dirname, "public")));
 
 // Endpoint to get video stream
 
