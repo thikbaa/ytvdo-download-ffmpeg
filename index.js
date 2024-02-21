@@ -20,11 +20,6 @@ app.use(express.static(path.resolve(__dirname, "public")));
 
 // Endpoint to get video stream
 
-app.get("/" , (req , res)=>{
-
-res.sendFile(__dirname , "public/index.html")
-
-})
 
 
 app.get('/video', async (req, res) => {
