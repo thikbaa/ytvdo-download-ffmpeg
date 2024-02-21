@@ -5,7 +5,7 @@ import ffmpeg from 'fluent-ffmpeg'
 // import ffmpegPath from '@ffmpeg-installer/ffmpeg'
 import path from "path"
 const __dirname = path.resolve();
-// import fs from "fs"
+import cors from "cors"
 // import tmp from 'tmp';
 
 import ffmpegPath from 'ffmpeg-static';
@@ -17,7 +17,7 @@ ffmpeg.setFfmpegPath(ffmpegPath);
 
 // Serve static files
 app.use(express.static(path.resolve(__dirname, "public")));
-
+app.use(cors())
 // Endpoint to get video stream
 
 
