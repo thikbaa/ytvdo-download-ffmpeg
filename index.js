@@ -3,8 +3,8 @@ const app = express();
 import ytdl from "ytdl-core";
 import ffmpeg from 'fluent-ffmpeg'
 // import ffmpegPath from '@ffmpeg-installer/ffmpeg'
-// import path from "path"
-// const __dirname = path.resolve();
+import path from "path"
+const __dirname = path.resolve();
 // import fs from "fs"
 // import tmp from 'tmp';
 
@@ -191,8 +191,8 @@ app.get('/download-alraudio', async (req, res) => {
 
 
 
-// Start the server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
-});
+// // Start the server
+// const PORT = process.env.PORT || 5000;
+// app.listen(PORT, () => {
+//     console.log(`Server is running on http://localhost:${PORT}`);
+// });
