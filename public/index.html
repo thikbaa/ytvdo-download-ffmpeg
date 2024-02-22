@@ -20,11 +20,12 @@
     <input type="text" id="videoURL2" placeholder="Enter YouTube Video URL" />
     <button onclick="getVideoInfo()">Get Video Info</button>
     <br /><br />
-<!-- 
+    <!-- 
    No Audio <select id="qualitySelect"></select>
     <button onclick="downloadMyNoAudioVideo()">Download</button> -->
-   Audio <select id="qualitySelectForAll"></select>
-     <button onclick="downloadVideo()">Download</button>
+    Audio
+    <select id="qualitySelectForAll"></select>
+    <button onclick="downloadVideo()">Download</button>
     <div id="progressBar"></div>
 
     <script>
@@ -108,7 +109,11 @@
         formats.forEach((format) => {
           const option = document.createElement("option");
           option.value = format.itag;
-          option.textContent = `${format.qualityLabel} (${format.container}) - ${format.itag} - ${format.bitrate} ${format.quality} ${format.quality} ${Math.ceil(format.contentLength / (1000 * 1000))} MB`;
+          option.textContent = `${format.qualityLabel} (${
+            format.container
+          }) - ${format.itag} - ${format.bitrate} ${format.quality} ${
+            format.quality
+          } ${Math.ceil(format.contentLength / (1000 * 1000))} MB`;
           qualitySelect.appendChild(option);
         });
       }
@@ -125,25 +130,29 @@
         //   videoURL
         // )}&itag=${itag}`;
 
-        const response = await fetch(`/download?url=${encodeURIComponent(videoURL)}&itag=${itag}`);
-        const totalSize = parseInt(response.headers.get('content-length'));
-        const progressBar = document.getElementById('progressBar');
-
+        const response = await fetch(
+          `/download?url=${encodeURIComponent(videoURL)}&itag=${itag}`,
+          {
+            method: "POST",
+          }
+        );
+        const someData = parseInt(response.headers.get("SomeData"));
+        const jsonData = await someData.json()
+        const progressBar = document.getElementById("progressBar");
+        let totalSize = jsonData.fileLength;
         if (!totalSize) {
-            alert('Cannot determine file size. Download may not show progress.');
+          alert("Cannot determine file size. Download may not show progress.");
         }
-
-        const filename = response.headers.get('filename') // Extract filename from content-disposition header
-
+        
         // Update the download progress
         const updateProgress = (loaded, total) => {
-            const percentComplete = (loaded / total) * 100;
-            progressBar.style.width = `${percentComplete}%`;
+          const percentComplete = (loaded / total) * 100;
+          progressBar.style.width = `${percentComplete}%`;
         };
 
         // Download progress event listener
         response.body.onprogress = (event) => {
-            updateProgress(event.loaded, totalSize);
+          updateProgress(event.loaded, totalSize);
         };
 
         // Create a blob from the response data
@@ -153,9 +162,9 @@
         const url = window.URL.createObjectURL(blob);
 
         // Create a link element to trigger the download
-        const a = document.createElement('a');
+        const a = document.createElement("a");
         a.href = url;
-        a.download = filename;
+        a.download = jsonData.filename;
         document.body.appendChild(a);
 
         // Trigger the download
@@ -176,9 +185,12 @@
         }
 
         const response = await fetch(
-          `/download?url=${encodeURIComponent(videoURL)}&itag=${itag}`
+          `/download?url=${encodeURIComponent(videoURL)}&itag=${itag}`,
+          {
+            method: "POST",
+          }
         );
-        const filename = response.headers.get('filename') // Extract filename from content-disposition header
+        const filename = response.headers.get("filename"); // Extract filename from content-disposition header
 
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
