@@ -136,24 +136,8 @@
             method: "POST",
           }
         );
-        const someData = parseInt(response.headers.get("SomeData"));
-        const jsonData = await someData.json()
-        const progressBar = document.getElementById("progressBar");
-        let totalSize = jsonData.fileLength;
-        if (!totalSize) {
-          alert("Cannot determine file size. Download may not show progress.");
-        }
-        
-        // Update the download progress
-        const updateProgress = (loaded, total) => {
-          const percentComplete = (loaded / total) * 100;
-          progressBar.style.width = `${percentComplete}%`;
-        };
-
-        // Download progress event listener
-        response.body.onprogress = (event) => {
-          updateProgress(event.loaded, totalSize);
-        };
+        // const someData = parseInt(response.headers.get("SomeData"));
+        const filename = response.headers.get("filename");
 
         // Create a blob from the response data
         const blob = await response.blob();
@@ -164,7 +148,7 @@
         // Create a link element to trigger the download
         const a = document.createElement("a");
         a.href = url;
-        a.download = jsonData.filename;
+        a.download = filename;
         document.body.appendChild(a);
 
         // Trigger the download
@@ -174,33 +158,6 @@
         window.URL.revokeObjectURL(url);
       }
 
-      //// here download video with audio already
-
-      async function downloadMyNoAudioVideo() {
-        const videoURL = document.getElementById("videoURL2").value;
-        const itag = document.getElementById("qualitySelect").value;
-        if (!videoURL || !itag) {
-          alert("Please select a video quality with 🔇 no audio");
-          return;
-        }
-
-        const response = await fetch(
-          `/download?url=${encodeURIComponent(videoURL)}&itag=${itag}`,
-          {
-            method: "POST",
-          }
-        );
-        const filename = response.headers.get("filename"); // Extract filename from content-disposition header
-
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = filename; // Change the filename if needed
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-      }
     </script>
   </body>
 </html>

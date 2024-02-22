@@ -203,18 +203,6 @@ app.post("/download", async (req, res) => {
     const sanitizedTitle = info.videoDetails.title
       .replace(/[^a-z0-9]+/gi, "_")
       .replace(/^_+|_+$/g, ""); // Replace invalid characters with underscores
-    // const sanitizedTitle = info.videoDetails.title.replace(/[^a-z0-9]/gi, '_'); // Replace invalid characters with underscores
-
-    // const myFormat = info.formats.filter((format) => {
-    //     return format.itag === itag
-    // });
-
-    // // console.log(myFormat)
-    // let contentLengthInBytes = myFormat[0].contentLength;
-    // // Convert bytes to megabytes
-    // const contentLengthInMB = Math.ceil(contentLengthInBytes / (1000 * 1000));
-
-    // console.log("File size:", contentLengthInMB, "MB");
     const videoStream = ytmixer(videoURL, itag);
 
     // Set Content-Disposition header to force download
@@ -224,7 +212,6 @@ app.post("/download", async (req, res) => {
     );
     res.header("Content-Type", "video/mp4");
     res.header("Filename", sanitizedTitle);
-    // res.header('Content-Length', contentLengthInMB);
 
     // Pipe the video stream to the response
     videoStream.pipe(res);
@@ -233,55 +220,6 @@ app.post("/download", async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
-
-// app.get("/download-alraudio", async (req, res) => {
-//   try {
-//     const videoURL = req.query.url;
-//     const itag = parseInt(req.query.itag);
-
-//     if (!videoURL || !itag) {
-//       return res.status(400).send("Video URL and itag are required");
-//     }
-
-//     // Get video info
-
-//     const info = await ytdl.getInfo(videoURL);
-//     const sanitizedTitle = info.videoDetails.title
-//       .replace(/[^a-z0-9]+/gi, "_")
-//       .replace(/^_+|_+$/g, ""); // Replace invalid characters with underscores
-//     const myFormat = info.formats.filter((format) => {
-//       return format.itag === itag;
-//     });
-//     // console.log(info)
-
-//     console.log("myFormat=>>>>>", myFormat);
-//     let contentLengthInBytes = myFormat[0].contentLength;
-//     // Convert bytes to megabytes
-//     const contentLengthInMB = Math.ceil(contentLengthInBytes / (1000 * 1000));
-
-//     console.log("File size:", contentLengthInMB, "MB");
-
-//     // Set response headers
-//     res.header(
-//       "Content-Disposition",
-//       `attachment; filename="${sanitizedTitle}.mp4"`
-//     );
-//     res.header("Content-Type", "video/mp4");
-//     res.header("Filename", sanitizedTitle);
-//     res.header("Content-Length", contentLengthInMB);
-
-//     // Get video stream
-//     const videoStream = ytdl(videoURL, {
-//       filter: (format) => format.itag === itag,
-//     });
-
-//     // Pipe video stream to response
-//     videoStream.pipe(res);
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).send("Internal Server Error");
-//   }
-// });
 
 // Start the server
 const PORT = process.env.PORT || 5000;
