@@ -20,9 +20,10 @@
     <input type="text" id="videoURL2" placeholder="Enter YouTube Video URL" />
     <button onclick="getVideoInfo()">Get Video Info</button>
     <br /><br />
-    <!-- 
-   No Audio <select id="qualitySelect"></select>
-    <button onclick="downloadMyNoAudioVideo()">Download</button> -->
+
+    No Audio
+    <select id="qualitySelect"></select>
+    <button onclick="downloadMyVideoNoAudio()">Download</button>
     Audio
     <select id="qualitySelectForAll"></select>
     <button onclick="downloadVideo()">Download</button>
@@ -88,25 +89,29 @@
         const formats = await response.json();
 
         const qualitySelect = document.getElementById("qualitySelectForAll");
-        // const qualitySelect2 = document.getElementById("qualitySelect2");
+        const qualitySelect2 = document.getElementById("qualitySelect");
 
         qualitySelect.innerHTML = "";
-        // const formatsWithAudio = formats.filter((format) => format.hasAudio);
-        // const formatsWithoutAudio = formats.filter(
-        //   (format) => !format.hasAudio
-        // );
+        const formatsWithAudio = formats.filter((format) => format.hasAudio);
+        const formatsWithoutAudio = formats.filter(
+          (format) => !format.hasAudio
+        );
 
         // Sort formats by resolution (descending order)
-        formats.sort((a, b) => b.width - a.width);
+        formatsWithoutAudio.sort((a, b) => b.width - a.width);
 
-        // formats.forEach((format) => {
-        //   const option2 = document.createElement("option");
-        //   option2.value = format.itag;
-        //   option2.textContent = `${format.qualityLabel} (${format.container}) - ${format.itag} - ${format.bitrate} ${format.quality} ${Math.ceil(format.contentLength / (1000 * 1000))} MB`;
-        //   qualitySelect2.appendChild(option2);
-        // });
+        formatsWithoutAudio.forEach((format) => {
+          const option2 = document.createElement("option");
+          option2.value = format.itag;
+          option2.textContent = `${format.qualityLabel} (${
+            format.container
+          }) - ${format.itag} - ${format.bitrate} ${format.quality} ${Math.ceil(
+            format.contentLength / (1000 * 1000)
+          )} MB`;
+          qualitySelect2.appendChild(option2);
+        });
 
-        formats.forEach((format) => {
+        formatsWithAudio.forEach((format) => {
           const option = document.createElement("option");
           option.value = format.itag;
           option.textContent = `${format.qualityLabel} (${
@@ -131,9 +136,11 @@
         // )}&itag=${itag}`;
 
         const response = await fetch(
-          `/download?url=${encodeURIComponent(videoURL)}&itag=${itag}`,
+          `/download-allreadyaudio?url=${encodeURIComponent(
+            videoURL
+          )}&itag=${itag}`,
           {
-            method: "POST",
+            method: "GET",
           }
         );
         // const someData = parseInt(response.headers.get("SomeData"));
@@ -157,7 +164,28 @@
         // Revoke the object URL to release memory
         window.URL.revokeObjectURL(url);
       }
+      async function downloadMyVideoNoAudio() {
+        const videoURL = document.getElementById("videoURL2").value;
+        const itag = document.getElementById("qualitySelect").value;
+        if (!videoURL || !itag) {
+          alert("Please select a video quality bro with no audio 🔊");
+          return;
+        }
 
+        // Create a link element
+        const a = document.createElement("a");
+        a.href = `/download?url=${encodeURIComponent(videoURL)}&itag=${itag}`;
+        a.target = "_blank"; // Open link in a new tab
+        document.body.appendChild(a);
+
+        // Trigger the download
+        a.click();
+
+        // Remove the link after download starts
+        setTimeout(() => {
+          document.body.removeChild(a);
+        }, 100);
+      }
     </script>
   </body>
 </html>
