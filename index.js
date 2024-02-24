@@ -2,18 +2,15 @@ import express from "express";
 const app = express();
 import ytdl from "ytdl-core";
 import ffmpeg from "fluent-ffmpeg";
-// import ffmpegPath from '@ffmpeg-installer/ffmpeg'
 import path from "path";
 const __dirname = path.resolve();
 import cors from "cors";
-// import tmp from 'tmp';
 
-import ffmpegPath from "ffmpeg-static";
+// import ffmpegPath from "ffmpeg-static";
 import cp from "child_process";
 import stream from "stream";
-import fs from "fs";
-import youtubedl from "youtube-dl";
-// Set the path to the FFmpeg binary
+
+const ffmpegPath = path.join(__dirname, "bin", "ffmpeg-static/ffmpeg"); // Adjust the path accordingly
 ffmpeg.setFfmpegPath(ffmpegPath);
 
 // Serve static files
@@ -190,37 +187,6 @@ app.get("/download", async (req, res) => {
   }
 });
 
-// app.get("/download", async (req, res) => {
-//   try {
-//     const videoURL = req.query.url;
-//     const itag = parseInt(req.query.itag); // Convert itag to integer
-
-//     if (!videoURL || !itag) {
-//       return res.status(400).send("Video URL and itag are required");
-//     }
-
-//     const info = await ytdl.getInfo(videoURL);
-
-//     const sanitizedTitle = info.videoDetails.title.replace(/[^a-z0-9]+/gi, "_");
-//     //   .replace(/^_+|_+$/g, ""); // Replace invalid characters with underscores
-//     const videoStream = ytmixer(videoURL, itag);
-
-//     // Set Content-Disposition header to force download
-//     res.header(
-//       "Content-Disposition",
-//       `attachment; filename="${sanitizedTitle}.mp4"`
-//     );
-//     res.header("Content-Type", "video/mp4");
-//     res.header("Filename", sanitizedTitle);
-
-//     // Pipe the video stream to the response
-//     videoStream.pipe(res);
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).send("Internal Server Error");
-//   }
-// });
-
 app.get("/download-allreadyaudio", async (req, res) => {
   try {
     const videoURL = req.query.url;
@@ -232,7 +198,7 @@ app.get("/download-allreadyaudio", async (req, res) => {
 
     const info = await ytdl.getInfo(videoURL);
 
-const sanitizedTitle = info.videoDetails.title.replace(/[^a-z0-9]+/gi, "_");
+    const sanitizedTitle = info.videoDetails.title.replace(/[^a-z0-9]+/gi, "_");
 
     // Get video stream directly filtering by itag
     const videoStream = ytdl(videoURL, {
@@ -255,6 +221,8 @@ const sanitizedTitle = info.videoDetails.title.replace(/[^a-z0-9]+/gi, "_");
     res.status(500).send("Internal Server Error");
   }
 });
+
+console.log("FFmpeg Path:", ffmpegPath);
 
 // Start the server
 const PORT = process.env.PORT || 5000;
