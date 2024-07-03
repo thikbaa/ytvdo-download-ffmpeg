@@ -92,6 +92,7 @@
         const qualitySelect2 = document.getElementById("qualitySelect");
 
         qualitySelect.innerHTML = "";
+        qualitySelect2.innerHTML=""
         const formatsWithAudio = formats.filter((format) => format.hasAudio);
         const formatsWithoutAudio = formats.filter(
           (format) => !format.hasAudio
@@ -116,9 +117,7 @@
           option.value = format.itag;
           option.textContent = `${format.qualityLabel} (${
             format.container
-          }) - ${format.itag} - ${format.bitrate} ${format.quality} ${
-            format.quality
-          } ${Math.ceil(format.contentLength / (1000 * 1000))} MB`;
+          }) - ${format.itag} - ${format.bitrate} ${format.quality}  ${Math.ceil(format.contentLength / (1000 * 1000))} MB`;
           qualitySelect.appendChild(option);
         });
       }
@@ -131,38 +130,20 @@
           return;
         }
 
-        // window.location.href = `/download?url=${encodeURIComponent(
-        //   videoURL
-        // )}&itag=${itag}`;
-
-        const response = await fetch(
-          `/download-allreadyaudio?url=${encodeURIComponent(
-            videoURL
-          )}&itag=${itag}`,
-          {
-            method: "GET",
-          }
-        );
-        // const someData = parseInt(response.headers.get("SomeData"));
-        const filename = response.headers.get("filename");
-
-        // Create a blob from the response data
-        const blob = await response.blob();
-
-        // Create a URL for the blob
-        const url = window.URL.createObjectURL(blob);
-
-        // Create a link element to trigger the download
+        // Create a link element
         const a = document.createElement("a");
-        a.href = url;
-        a.download = filename;
+        a.href = `/download?url=${encodeURIComponent(videoURL)}&itag=${itag}`;
+        // a.target = "_blank"; // Open link in a new tab
         document.body.appendChild(a);
 
         // Trigger the download
         a.click();
 
-        // Revoke the object URL to release memory
-        window.URL.revokeObjectURL(url);
+        // Remove the link after download starts
+        setTimeout(() => {
+          document.body.removeChild(a);
+        }, 100);
+     
       }
       async function downloadMyVideoNoAudio() {
         const videoURL = document.getElementById("videoURL2").value;
@@ -175,7 +156,7 @@
         // Create a link element
         const a = document.createElement("a");
         a.href = `/download?url=${encodeURIComponent(videoURL)}&itag=${itag}`;
-        a.target = "_blank"; // Open link in a new tab
+        // a.target = "_blank"; // Open link in a new tab
         document.body.appendChild(a);
 
         // Trigger the download
