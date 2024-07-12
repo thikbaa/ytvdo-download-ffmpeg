@@ -82,12 +82,12 @@
           alert("Please enter a YouTube video URL");
           return;
         }
-
+ 
         const response = await fetch(
           `/video-info?url=${encodeURIComponent(videoURL)}`
         );
-        const formats = await response.json();
-
+        const data = await response.json();
+        let formats = data.formats;
         const qualitySelect = document.getElementById("qualitySelectForAll");
         const qualitySelect2 = document.getElementById("qualitySelect");
 
@@ -129,7 +129,7 @@
           alert("Please select a video quality bro with audio 🔊");
           return;
         }
-
+        // response.headers.get("filename");
         // Create a link element
         const a = document.createElement("a");
         a.href = `/download?url=${encodeURIComponent(videoURL)}&itag=${itag}`;

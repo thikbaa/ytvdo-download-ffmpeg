@@ -14,6 +14,32 @@ import axios from "axios";
 // import ffmpegPath from "ffmpeg-static";
 import cp from "child_process";
 import stream from "stream";
+import http from "http";
+import { Server as socketIo } from "socket.io";
+
+// const httpServer = createServer(app);
+// const io = new Server(httpServer, {
+//   cors: {
+//     origin: "http://localhost:5173", // Replace with your client's URL
+//     methods: ["GET", "POST"]
+//   }
+// });
+// const server = http.createServer(app);
+
+// const io = new socketIo(server, {
+//   cors: {
+//     origin: "http://localhost:5173", // Adjust according to your client URL
+//     methods: ["GET", "POST"]
+//   }
+// });
+
+// io.on('connection', (socket) => {
+//   console.log('New client connected:', socket.id);
+
+//   socket.on('disconnect', () => {
+//     console.log('Client disconnected:', socket.id);
+//   });
+// });
 
 const ffmpegPath = path.join(__dirname, "bin", "ffmpeg-static/ffmpeg"); // Adjust the path accordingly
 ffmpeg.setFfmpegPath(ffmpegPath);
@@ -22,6 +48,22 @@ ffmpeg.setFfmpegPath(ffmpegPath);
 app.use(express.static(path.resolve(__dirname, "public")));
 app.use(cors());
 // Endpoint to get video stream
+// app.use((req, res, next) => {
+//   res.header("Access-Control-Allow-Origin", "*"); // Be more specific in production
+//   res.header(
+//     "Access-Control-Expose-Headers",
+//     "Access-Control-Allow-Origin, Connection, Content-Length, Content-Type, Date, Etag, Hello, Keep-Alive, X-Powered-By"
+//   );
+//   next();
+// });
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*"); // Be more specific in production
+  res.header(
+    "Access-Control-Expose-Headers",
+    "X-Error-Message, X-Success-Message, Content-Disposition, Content-Type, Content-Length"
+  );
+  next();
+});
 
 app.get("/video", async (req, res) => {
   try {
@@ -505,84 +547,554 @@ app.get("/video-info", async (req, res) => {
 // });
 
 // Function to get content length using HEAD request
-// async function getContentLength(url) {
-//   try {
-//     const response = await axios.head(url);
-//     return parseInt(response.headers["content-length"]);
-//   } catch (error) {
-//     console.error("Error getting content length:", error.message);
-//     return null;
-//   }
-// }
-
-const ytmixer = async (link, itag, options = {}) => {
-  const info = await ytdl.getInfo(link, options);
-  const videoFormat = info.formats.find((format) => format.itag === itag);
-
-  if (!videoFormat) {
-    throw new Error("No such format found");
+async function getContentLength(url) {
+  try {
+    const response = await axios.head(url);
+    return parseInt(response.headers["content-length"]);
+  } catch (error) {
+    console.error("Error getting content length:", error.message);
+    return null;
   }
+}
 
-  const audioFormat = ytdl.chooseFormat(info.formats, {
-    quality: "highestaudio",
+// const ytmixer = async (link, itag, options = {}) => {
+//   const info = await ytdl.getInfo(link, options);
+//   const videoFormat = info.formats.find((format) => format.itag === itag);
+
+//   if (!videoFormat) {
+//     throw new Error("No such format found");
+//   }
+
+//   const audioFormat = ytdl.chooseFormat(info.formats, {
+//     quality: "highestaudio",
+//   });
+
+//   // Get content lengths using HEAD requests
+//   // const videoContentLength = await getContentLength(videoFormat.url);
+//   // const audioContentLength = await getContentLength(audioFormat.url);
+//   //  const totalContentLength =
+//   //   (videoContentLength || 0) + (audioContentLength || 0);
+//   //   console.log("totalContentLength in use ", totalContentLength);
+//   let totalContentLength =
+//     parseInt(videoFormat.contentLength) + parseInt(audioFormat.contentLength);
+
+//   console.log("totalContentLength ", totalContentLength);
+
+//   const result = new stream.PassThrough({
+//     highWaterMark: options.highWaterMark || 1024 * 512,
+//   });
+
+//   let audioStream = ytdl.downloadFromInfo(info, {
+//     ...options,
+//     quality: "highestaudio",
+//   });
+//   let videoStream = ytdl.downloadFromInfo(info, {
+//     ...options,
+//     format: videoFormat,
+//   });
+
+//   let ffmpegProcess = cp.spawn(
+//     ffmpegPath,
+//     [
+//       "-loglevel",
+//       "8",
+//       "-hide_banner",
+//       "-i",
+//       "pipe:3",
+//       "-i",
+//       "pipe:4",
+//       "-map",
+//       "0:a",
+//       "-map",
+//       "1:v",
+//       "-c",
+//       "copy",
+//       "-f",
+//       "matroska",
+//       "pipe:5",
+//     ],
+//     {
+//       windowsHide: true,
+//       stdio: ["inherit", "inherit", "inherit", "pipe", "pipe", "pipe"],
+//     }
+//   );
+
+//   audioStream.pipe(ffmpegProcess.stdio[3]);
+//   videoStream.pipe(ffmpegProcess.stdio[4]);
+//   ffmpegProcess.stdio[5].pipe(result);
+
+//   return { stream: result, contentLength: totalContentLength };
+// };
+
+const ytmixer = (link, itag, options = {}) => {
+  return new Promise((resolve, reject) => {
+    const result = new stream.PassThrough({
+      highWaterMark: options.highWaterMark || 1024 * 512,
+    });
+
+    ytdl
+      .getInfo(link, options)
+      .then((info) => {
+        const videoFormat = info.formats.find((format) => format.itag === itag);
+        if (!videoFormat) {
+          throw new Error("No such format found");
+        }
+
+        const audioFormat = ytdl.chooseFormat(info.formats, {
+          quality: "highestaudio",
+        });
+
+        let totalContentLength =
+          parseInt(videoFormat.contentLength || 0) +
+          parseInt(audioFormat.contentLength || 0);
+
+        let audioStream = ytdl.downloadFromInfo(info, {
+          ...options,
+          quality: "highestaudio",
+        });
+        let videoStream = ytdl.downloadFromInfo(info, {
+          ...options,
+          format: videoFormat,
+        });
+
+        let ffmpegProcess = cp.spawn(
+          ffmpegPath,
+          [
+            "-loglevel",
+            "8",
+            "-hide_banner",
+            "-i",
+            "pipe:3",
+            "-i",
+            "pipe:4",
+            "-map",
+            "0:a",
+            "-map",
+            "1:v",
+            "-c",
+            "copy",
+            "-f",
+            "mp4", // Change to mp4 format
+            "-movflags",
+            "frag_keyframe+empty_moov", // Add this line
+            "pipe:5",
+          ],
+          {
+            windowsHide: true,
+            stdio: ["inherit", "inherit", "inherit", "pipe", "pipe", "pipe"],
+          }
+        );
+
+        audioStream.pipe(ffmpegProcess.stdio[3]);
+        videoStream.pipe(ffmpegProcess.stdio[4]);
+        ffmpegProcess.stdio[5].pipe(result);
+
+        resolve({ stream: result, contentLength: totalContentLength });
+      })
+      .catch(reject);
   });
-
-  // Get content lengths using HEAD requests
-  // const videoContentLength = await getContentLength(videoFormat.url);
-  // const audioContentLength = await getContentLength(audioFormat.url);
-  //  const totalContentLength =
-  //   (videoContentLength || 0) + (audioContentLength || 0);
-  //   console.log("totalContentLength in use ", totalContentLength);
-  let totalContentLength =
-    parseInt(videoFormat.contentLength) + parseInt(audioFormat.contentLength);
-
-  console.log("totalContentLength ", totalContentLength);
-
-  const result = new stream.PassThrough({
-    highWaterMark: options.highWaterMark || 1024 * 512,
-  });
-
-  let audioStream = ytdl.downloadFromInfo(info, {
-    ...options,
-    quality: "highestaudio",
-  });
-  let videoStream = ytdl.downloadFromInfo(info, {
-    ...options,
-    format: videoFormat,
-  });
-
-  let ffmpegProcess = cp.spawn(
-    ffmpegPath,
-    [
-      "-loglevel",
-      "8",
-      "-hide_banner",
-      "-i",
-      "pipe:3",
-      "-i",
-      "pipe:4",
-      "-map",
-      "0:a",
-      "-map",
-      "1:v",
-      "-c",
-      "copy",
-      "-f",
-      "matroska",
-      "pipe:5",
-    ],
-    {
-      windowsHide: true,
-      stdio: ["inherit", "inherit", "inherit", "pipe", "pipe", "pipe"],
-    }
-  );
-
-  audioStream.pipe(ffmpegProcess.stdio[3]);
-  videoStream.pipe(ffmpegProcess.stdio[4]);
-  ffmpegProcess.stdio[5].pipe(result);
-
-  return { stream: result, contentLength: totalContentLength };
 };
+
+// app.get("/download", async (req, res) => {
+//   try {
+//     const videoURL = req.query.url;
+//     const itag = parseInt(req.query.itag);
+
+//     if (!videoURL || !itag) {
+//       return res.status(400).send("Video URL and itag are required");
+//     }
+
+//     const info = await ytdl.getInfo(videoURL);
+//     const format = info.formats.find((format) => format.itag === itag);
+
+//     if (!format) {
+//       return res.status(400).send("Invalid itag or format not found");
+//     }
+
+//     const sanitizedTitle = sanitizeFilename(info.videoDetails.title) || "video";
+//     const disposition = contentDisposition(
+//       `${sanitizedTitle}.${format.container}`
+//     );
+
+//     res.setHeader("Content-Disposition", disposition);
+//     res.setHeader("Content-Type", `video/${format.container}`);
+
+//     let contentLength;
+//     let downloadStream;
+
+//     if (format.hasAudio) {
+//       contentLength = await getContentLength(format.url);
+//       downloadStream = ytdl(videoURL, { format });
+//     } else {
+//       const { stream, contentLength: mixerContentLength } = await ytmixer(
+//         videoURL,
+//         itag
+//       );
+//       contentLength = mixerContentLength;
+//       downloadStream = stream;
+//     }
+
+//     if (contentLength) {
+//       // res.setHeader("Content-Length", contentLength);
+//       res.header("contentLength", contentLength);
+//     }
+
+//     downloadStream.pipe(res);
+
+//     // Error handling for the stream
+//     downloadStream.on("error", (error) => {
+//       console.error("Download stream error:", error);
+//       if (!res.headersSent) {
+//         res.status(500).send("Internal Server Error");
+//       }
+//     });
+
+//     res.on("error", (error) => {
+//       console.error("Response stream error:", error);
+//       if (!res.headersSent) {
+//         res.status(500).send("Internal Server Error");
+//       }
+//     });
+//   } catch (error) {
+//     console.error("Download error:", error);
+//     if (!res.headersSent) {
+//       res.status(500).send("Internal Server Error");
+//     }
+//   }
+// });
+
+// working
+// app.get("/download", async (req, res) => {
+//   // let Errors = [];
+//   try {
+//     const videoURL = req.query.url;
+//     const itag = parseInt(req.query.itag);
+//     console.log("videoURL ", videoURL)
+//     if (!videoURL || !itag) {
+//       // Errors.push("Video URL and Quality are required!");
+//       res.setHeader("hello", "Video URL and Quality are required!");
+//       return res
+//         .status(400)
+//         .json({ success: false, message: "Video URL and itag are required" });
+//     }
+
+//     const info = await ytdl.getInfo(videoURL);
+//     console.log("info " , info? "yes" : "no")
+//     const format = info.formats.find((format) => format.itag === itag);
+
+//     if (!format) {
+//       // Errors.push("You have selected Wrong Video Quality!");
+//       console.log("no format")
+//       res.setHeader("hello", "Invalid itag or format not found");
+//       return res
+//         .status(400)
+//         .json({ success: false, message: "Invalid itag or format not found" });
+//     }
+
+//     const sanitizedTitle = sanitizeFilename(info.videoDetails.title) || "video";
+//     const disposition = contentDisposition(
+//       `${sanitizedTitle}.${format.container}`
+//     );
+
+//     res.setHeader("Content-Disposition", disposition);
+//     res.setHeader("Content-Type", `video/${format.container}`);
+
+//     let contentLength;
+//     let downloadStream;
+
+//     if (format.hasAudio) {
+//       contentLength = await getContentLength(format.url);
+//       downloadStream = ytdl(videoURL, { format });
+//     } else {
+//       const { stream, contentLength: mixerContentLength } = await ytmixer(
+//         videoURL,
+//         itag
+//       );
+//       contentLength = mixerContentLength;
+//       downloadStream = stream;
+//     }
+
+//     // if (contentLength) {
+//     //   res.setHeader("Content-Length", contentLength);
+//     // }
+//     // res.setHeader("Errors" , Errors)
+
+//     downloadStream.pipe(res);
+
+//     // Error handling for the stream
+//     downloadStream.on("error", (error) => {
+//       console.error("Download stream error:", error);
+//       if (!res.headersSent) {
+//         // Errors.push("We are facing Internal Errors. Please try again |");
+//         res.setHeader("hello", "Internal Server Error");
+//         res
+//           .status(500)
+//           .json({ success: false, message: "Internal Server Error" });
+//       }
+//     });
+
+//     res.on("error", (error) => {
+//       console.error("Response stream error:", error);
+//       if (!res.headersSent) {
+//         // Errors.push("We are facing Internal Errors. Please try again |");
+//         res.setHeader("hello", "Internal Server Error");
+//         res
+//           .status(500)
+//           .json({ success: false, message: "Internal Server Error" });
+//       }
+//     });
+//   } catch (error) {
+//     console.error("Download error:", error);
+//     // if (!res.headersSent) {
+//     //   // Errors.push("We are facing Internal Errors. Please try again |");
+//     //   res.setHeader("hello", "Internal Server Error");
+//       // res.setHeader("Errors" , Errors)
+//       res
+//         .status(500)
+//         .json({ success: false, message: "Internal Server Error" });
+//     // }
+//   }
+// });
+// app.get("/download", async (req, res) => {
+//   try {
+//     const videoURL = req.query.url;
+//     const itag = parseInt(req.query.itag);
+
+//     if (!videoURL || !itag) {
+//       res.setHeader("X-Error-Message", "Video URL and Quality are required!");
+//       return res.status(400).json({ success: false, message: "Video URL and itag are required" });
+//     }
+
+//     const info = await ytdl.getInfo(videoURL);
+//     const format = info.formats.find((format) => format.itag === itag);
+
+//     if (!format) {
+//       res.setHeader("X-Error-Message", "Invalid itag or format not found");
+//       return res.status(400).json({ success: false, message: "Invalid itag or format not found" });
+//     }
+
+//     const sanitizedTitle = sanitizeFilename(info.videoDetails.title) || "video";
+//     const disposition = contentDisposition(`${sanitizedTitle}.${format.container}`);
+
+//     res.setHeader("Content-Disposition", disposition);
+//     res.setHeader("Content-Type", `video/${format.container}`);
+//     res.setHeader("X-Success-Message", "Download started successfully");
+
+//     let contentLength;
+//     let downloadStream;
+
+//     if (format.hasAudio) {
+//       contentLength = await getContentLength(format.url);
+//       downloadStream = ytdl(videoURL, { format });
+//     } else {
+//       const { stream, contentLength: mixerContentLength } = await ytmixer(videoURL, itag);
+//       contentLength = mixerContentLength;
+//       downloadStream = stream;
+//     }
+
+//     if (contentLength) {
+//       res.setHeader("Content-Length", contentLength);
+//     }
+
+//     downloadStream.pipe(res);
+
+//     // Error handling for the stream
+//     downloadStream.on("error", (error) => {
+//       console.error("Download stream error:", error);
+//       if (!res.headersSent) {
+//         res.setHeader("X-Error-Message", "Internal Server Error during download");
+//         res.status(500).json({ success: false, message: "Internal Server Error" });
+//       }
+//     });
+
+//     res.on("error", (error) => {
+//       console.error("Response stream error:", error);
+//       if (!res.headersSent) {
+//         res.setHeader("X-Error-Message", "Internal Server Error during response");
+//         res.status(500).json({ success: false, message: "Internal Server Error" });
+//       }
+//     });
+
+//   } catch (error) {
+//     console.error("Download error:", error);
+//     if (!res.headersSent) {
+//       res.setHeader("X-Error-Message", "Internal Server Error");
+//       res.status(500).json({ success: false, message: "Internal Server Error" });
+//     }
+//   }
+// });
+// non socket.io
+// app.get("/download", async (req, res) => {
+//   try {
+//     const videoURL = req.query.url;
+//     const itag = parseInt(req.query.itag);
+//     console.log("videoURL ", videoURL);
+//     if (!videoURL || !itag) {
+//       res.setHeader("X-Error-Message", "Video URL and Quality are required!");
+//       return res
+//         .status(400)
+//         .json({ success: false, message: "Video URL and itag are required" });
+//     }
+
+//     const info = await ytdl.getInfo(videoURL);
+//     const format = info.formats.find((format) => format.itag === itag);
+
+//     if (!format) {
+//       res.setHeader("X-Error-Message", "Invalid itag or format not found");
+//       return res
+//         .status(400)
+//         .json({ success: false, message: "Invalid itag or format not found" });
+//     }
+
+//     const sanitizedTitle = sanitizeFilename(info.videoDetails.title) || "video";
+//     const disposition = contentDisposition(
+//       `${sanitizedTitle}.${format.container}`
+//     );
+
+//     res.setHeader("Content-Disposition", disposition);
+//     res.setHeader("Content-Type", `video/${format.container}`);
+//     res.setHeader("X-Success-Message", "Download started successfully");
+
+//     let contentLength;
+//     let downloadStream;
+
+//     if (format.hasAudio) {
+//       contentLength = await getContentLength(format.url);
+//       downloadStream = ytdl(videoURL, { format });
+//     } else {
+//       const { stream, contentLength: mixerContentLength } = await ytmixer(
+//         videoURL,
+//         itag
+//       );
+//       contentLength = mixerContentLength;
+//       downloadStream = stream;
+//     }
+
+//     if (contentLength) {
+//       res.setHeader("Content-Length", contentLength);
+//     }
+
+//     downloadStream.pipe(res);
+
+//     // Error handling for the stream
+//     downloadStream.on("error", (error) => {
+//       console.error("Download stream error:", error);
+//       if (!res.headersSent) {
+//         res.setHeader(
+//           "X-Error-Message",
+//           "Internal Server Error during download"
+//         );
+//         res
+//           .status(500)
+//           .json({ success: false, message: "Internal Server Error" });
+//       }
+//     });
+
+//     res.on("error", (error) => {
+//       console.error("Response stream error:", error);
+//       if (!res.headersSent) {
+//         res.setHeader(
+//           "X-Error-Message",
+//           "Internal Server Error during response"
+//         );
+//         res
+//           .status(500)
+//           .json({ success: false, message: "Internal Server Error" });
+//       }
+//     });
+//   } catch (error) {
+//     console.error("Download error:", error);
+//     if (!res.headersSent) {
+//       res.setHeader("X-Error-Message", "Internal Server Error");
+//       res
+//         .status(500)
+//         .json({ success: false, message: "Internal Server Error" });
+//     }
+//   }
+// });
+
+// app.get("/download", async (req, res) => {
+//   const clientId = req.query.clientId; // You'll need to send this from the client
+
+//   try {
+//     const videoURL = req.query.url;
+//     const itag = parseInt(req.query.itag);
+
+//     if (!videoURL || !itag) {
+//       res.setHeader("X-Error-Message", "Video URL and Quality are required!");
+//       return res.status(400).json({ success: false, message: "Video URL and itag are required" });
+//     }
+
+//     const info = await ytdl.getInfo(videoURL);
+//     const format = info.formats.find((format) => format.itag === itag);
+
+//     if (!format) {
+//       res.setHeader("X-Error-Message", "Invalid itag or format not found");
+//       return res.status(400).json({ success: false, message: "Invalid itag or format not found" });
+//     }
+
+//     const sanitizedTitle = sanitizeFilename(info.videoDetails.title) || "video";
+//     const disposition = contentDisposition(`${sanitizedTitle}.${format.container}`);
+
+//     res.setHeader("Content-Disposition", disposition);
+//     res.setHeader("Content-Type", `video/${format.container}`);
+//     res.setHeader("X-Success-Message", "Download started successfully");
+
+//     let contentLength;
+//     let downloadStream;
+
+//     if (format.hasAudio) {
+//       contentLength = await getContentLength(format.url);
+//       downloadStream = ytdl(videoURL, { format });
+//     } else {
+//       const { stream, contentLength: mixerContentLength } = await ytmixer(videoURL, itag);
+//       contentLength = mixerContentLength;
+//       downloadStream = stream;
+//     }
+
+//     if (contentLength) {
+//       res.setHeader("Content-Length", contentLength);
+//     }
+
+//     downloadStream.pipe(res);
+
+//     downloadStream.on("error", (error) => {
+//       console.error("Download stream error:", error);
+//       if (!res.headersSent) {
+//         res.setHeader("X-Error-Message", "Internal Server Error during download");
+//         res.status(500).json({ success: false, message: "Internal Server Error" });
+//       }
+//       io.to(clientId).emit('downloadError', { message: "Error during download" });
+//     });
+
+//     downloadStream.on("end", () => {
+//       console.log("Download stream ended successfully");
+//       io.to(clientId).emit('downloadComplete', { message: "Download completed successfully" });
+//     });
+
+//     res.on("error", (error) => {
+//       console.error("Response stream error:", error);
+//       if (!res.headersSent) {
+//         res.setHeader("X-Error-Message", "Internal Server Error during response");
+//         res.status(500).json({ success: false, message: "Internal Server Error" });
+//       }
+//       io.to(clientId).emit('downloadError', { message: "Error during response" });
+//     });
+
+//     res.on("finish", () => {
+//       console.log("Response finished successfully");
+//     });
+
+//   } catch (error) {
+//     console.error("Download error:", error);
+//     if (!res.headersSent) {
+//       res.setHeader("X-Error-Message", "Internal Server Error");
+//       res.status(500).json({ success: false, message: "Internal Server Error" });
+//     }
+//     io.to(clientId).emit('downloadError', { message: "Internal Server Error" });
+//   }
+// });
+
 
 app.get("/download", async (req, res) => {
   try {
@@ -590,68 +1102,46 @@ app.get("/download", async (req, res) => {
     const itag = parseInt(req.query.itag);
 
     if (!videoURL || !itag) {
-      return res.status(400).send("Video URL and itag are required");
+      return res.status(400).json({ success: false, message: "Video URL and itag are required" });
     }
 
     const info = await ytdl.getInfo(videoURL);
     const format = info.formats.find((format) => format.itag === itag);
 
     if (!format) {
-      return res.status(400).send("Invalid itag or format not found");
+      return res.status(400).json({ success: false, message: "Invalid itag or format not found" });
     }
 
     const sanitizedTitle = sanitizeFilename(info.videoDetails.title) || "video";
-    const disposition = contentDisposition(
-      `${sanitizedTitle}.${format.container}`
-    );
 
-    res.setHeader("Content-Disposition", disposition);
     res.setHeader("Content-Type", `video/${format.container}`);
+    res.setHeader("Content-Disposition", `attachment; filename="${sanitizedTitle}.${format.container}"`);
 
-    let contentLength;
     let downloadStream;
 
     if (format.hasAudio) {
-      contentLength = await getContentLength(format.url);
       downloadStream = ytdl(videoURL, { format });
     } else {
-      const { stream, contentLength: mixerContentLength } = await ytmixer(
-        videoURL,
-        itag
-      );
-      contentLength = mixerContentLength;
+      const { stream } = await ytmixer(videoURL, itag);
       downloadStream = stream;
     }
 
-    if (contentLength) {
-      // res.setHeader("Content-Length", contentLength);
-      res.header("contentLength", contentLength);
-    }
-
-    downloadStream.pipe(res);
-
-    // Error handling for the stream
     downloadStream.on("error", (error) => {
       console.error("Download stream error:", error);
       if (!res.headersSent) {
-        res.status(500).send("Internal Server Error");
+        res.status(500).json({ success: false, message: "Internal Server Error" });
       }
     });
 
-    res.on("error", (error) => {
-      console.error("Response stream error:", error);
-      if (!res.headersSent) {
-        res.status(500).send("Internal Server Error");
-      }
-    });
+    downloadStream.pipe(res);
+
   } catch (error) {
     console.error("Download error:", error);
     if (!res.headersSent) {
-      res.status(500).send("Internal Server Error");
+      res.status(500).json({ success: false, message: "Internal Server Error" });
     }
   }
 });
-
 app.get("/download-allreadyaudio", async (req, res) => {
   const videoURL = req.query.url;
   const itag = req.query.itag;
@@ -710,3 +1200,5 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
+// const PORT = process.env.PORT || 5000;
+// server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
