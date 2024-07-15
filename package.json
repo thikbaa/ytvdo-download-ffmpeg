@@ -23,6 +23,8 @@
     "stream-buffers": "^3.0.3",
     "tmp": "^0.2.1",
     "url-file-size": "^1.0.5-1",
-    "ytdl-core": "^4.11.5"
+    "youtube-dl-exec": "^3.0.6",
+    "ytdl-core": "^4.11.5",
+    "ytdl-core-muxer": "^1.0.1"
   }
 }
