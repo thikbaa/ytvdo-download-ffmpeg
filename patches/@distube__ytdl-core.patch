@@ -1,0 +1,58 @@
+diff --git a/lib/index.js b/lib/index.js
+index 7bf69b5fe7a1286b11829e58d7fc0fe032bf14c4..ffa9849cea9fecd72cd4c0b1f7b086906503858b 100644
+--- a/lib/index.js
++++ b/lib/index.js
+@@ -70,11 +70,11 @@ const pipeAndSetEvents = (req, stream, end) => {
+ const downloadFromInfoCallback = (stream, info, options) => {
+   options = options || {};
+ 
+-  let err = utils.playError(info.player_response);
+-  if (err) {
+-    stream.emit('error', err);
+-    return;
+-  }
++  // let err = utils.playError(info.player_response);
++  // if (err) {
++  //   stream.emit('error', err);
++  //   return;
++  // }
+ 
+   if (!info.formats.length) {
+     stream.emit('error', Error('This video is unavailable'));
+diff --git a/lib/info.js b/lib/info.js
+index 8276e2331e89f075ef78115400805482f4be2b50..a0fc66688fe69a942fcb795e6a7d4bf9e8566bdb 100644
+--- a/lib/info.js
++++ b/lib/info.js
+@@ -43,8 +43,8 @@ exports.getBasicInfo = async(id, options) => {
+   options.requestOptions.dispatcher = dispatcher;
+   const info = await retryFunc(getWatchHTMLPage, [id, options], retryOptions);
+ 
+-  const playErr = utils.playError(info.player_response);
+-  if (playErr) throw playErr;
++  // const playErr = utils.playError(info.player_response);
++  // if (playErr) throw playErr;
+ 
+ 
+   Object.assign(info, {
+@@ -335,8 +335,8 @@ const fetchIosJsonPlayer = async(videoId, options) => {
+     },
+   };
+   const response = await utils.request('https://youtubei.googleapis.com/youtubei/v1/player', opts);
+-  const playErr = utils.playError(response);
+-  if (playErr) throw playErr;
++  // const playErr = utils.playError(response);
++  // if (playErr) throw playErr;
+   if (!response.videoDetails || videoId !== response.videoDetails.videoId) {
+     const err = new Error('Malformed response from YouTube');
+     err.response = response;
+@@ -399,8 +399,8 @@ const fetchAndroidJsonPlayer = async(videoId, options) => {
+     },
+   };
+   const response = await utils.request('https://youtubei.googleapis.com/youtubei/v1/player', opts);
+-  const playErr = utils.playError(response);
+-  if (playErr) throw playErr;
++  // const playErr = utils.playError(response);
++  // if (playErr) throw playErr;
+   if (!response.videoDetails || videoId !== response.videoDetails.videoId) {
+     const err = new Error('Malformed response from YouTube');
+     err.response = response;
