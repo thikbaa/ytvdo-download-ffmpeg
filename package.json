@@ -36,7 +36,7 @@
   },
   "pnpm": {
     "patchedDependencies": {
-      "@distube/ytdl-core": "patches/@distube__ytdl-core.patch"
+      "@distube/ytdl-core": "patches/@distube/ytdl-core.patch"
     }
   }
 }
