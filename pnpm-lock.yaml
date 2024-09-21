@@ -7,7 +7,7 @@ settings:
 patchedDependencies:
   '@distube/ytdl-core':
     hash: f2sag4q3bjsfo42ijgqdpsbbsi
-    path: patches/@distube+ytdl-core.patch
+    path: patches/@distube__ytdl-core.patch
 
 importers:
 
