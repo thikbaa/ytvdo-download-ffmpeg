@@ -1,6 +1,6 @@
 import express from "express";
 const app = express();
-import ytdl from "ytdl-core";
+import ytdl from "@distube/ytdl-core";
 import path from "path";
 const __dirname = path.resolve();
 import cors from "cors";
