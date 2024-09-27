@@ -1,7 +1,7 @@
 import express from "express";
 const app = express();
-// import ytdl from "@distube/ytdl-core";
-import ytdl from "ytdl-core";
+import ytdl from "@distube/ytdl-core";
+// import ytdl from "ytdl-core";
 import path from "path";
 const __dirname = path.resolve();
 import cors from "cors";
@@ -330,8 +330,12 @@ app.get("/download", async (req, res) => {
 
     if (format.hasAudio) {
       contentLength = await getContentLength(format.url);
-      res.setHeader("Content-Length", format.contentLength);
-      downloadStream = ytdl(videoURL, { format });
+      if (contentLength !== 0) {
+        res.setHeader("Content-Length", contentLength);
+      } else {
+        let mylength = await ufs(format.url);
+        res.setHeader("Content-Length", mylength);
+      }      downloadStream = ytdl(videoURL, { format });
     } else {
       const {stream} = await ytmixer(videoURL, format.itag);
       // contentLength = mixerContentLength;
