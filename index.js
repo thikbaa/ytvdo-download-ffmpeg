@@ -9,6 +9,7 @@ import ufs from "url-file-size";
 import sanitizeFilename from "sanitize-filename";
 import contentDisposition from "content-disposition";
 import axios from "axios";
+import ytpl from "ytpl"
 // import ffmpegPath from "ffmpeg-static";
 // import cp from "child_process";
 // import stream from "stream";
@@ -274,6 +275,34 @@ function selectFormat(formats, targetItag, qualityPreference = "medium") {
       return sortedFormats[Math.floor(sortedFormats.length / 2)];
   }
 }
+
+app.get('/get-playlist-info' ,  async (req, res) => {
+  try {
+    const playlistUrl = req.query.playlistUrl;
+    if (!playlistUrl) {
+      return res.status(400).json({ success: false, message: "Playlist URL is required" });
+    }
+    let isUrlValid = ytpl.validateID(playlistUrl);
+    if (!isUrlValid) {
+      return res.status(400).json({ success: false, message: "Playlist url is not valid or private" });
+    }
+    const playlist = await ytpl(playlistUrl, { limit: Infinity });
+
+    res.status(200).json({
+      success: true,
+      message: "Playlist information fetched successfully",
+      videos: playlist.items,
+      estimatedItemCount: playlist.estimatedItemCount
+    });
+  } catch (error) {
+    console.error('Error fetching playlist information:', error);
+    if (error.name === 'YtplError') {
+      return res.status(400).json({ success: false, message: "Invalid playlist URL" });
+    } else {
+      return res.status(500).json({ success: false, message: `Internal server error ${error.message}` });
+    }
+  }
+})
 
 app.get("/download", async (req, res) => {
   // const clientId = req.query.clientId; // You'll need to send this from the client

@@ -14,12 +14,10 @@
   "license": "ISC",
   "dependencies": {
     "@distube/ytdl-core": "^4.14.4",
-    "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "axios": "^1.7.2",
     "content-disposition": "^0.5.4",
     "cors": "^2.8.5",
     "express": "^4.18.2",
-    "fluent-ffmpeg": "^2.1.2",
     "http": "^0.0.1-security",
     "sanitize-filename": "^1.6.3",
     "simple-git": "^3.25.0",
@@ -28,7 +26,7 @@
     "tmp": "^0.2.1",
     "url-file-size": "^1.0.5-1",
     "ytdl-core": "^4.11.5",
-    "ytdl-core-muxer": "^1.0.1"
+    "ytpl": "^2.3.0"
   },
   "devDependencies": {
     "patch-package": "^8.0.0"
