@@ -9,9 +9,9 @@ import ufs from "url-file-size";
 import sanitizeFilename from "sanitize-filename";
 import contentDisposition from "content-disposition";
 import axios from "axios";
-import ffmpegPath from "ffmpeg-static";
-import cp from "child_process";
-import stream from "stream";
+// import ffmpegPath from "ffmpeg-static";
+// import cp from "child_process";
+// import stream from "stream";
 
 // const httpServer = createServer(app);
 // const io = new Server(httpServer, {
@@ -119,83 +119,83 @@ async function getContentLength(url) {
   }
 }
 
-const ytmixer = (link, itag, options = {}) => {
-  console.log("i am from ytmixer");
-  return new Promise((resolve, reject) => {
-    const result = new stream.PassThrough({
-      highWaterMark: options.highWaterMark || 1024 * 512,
-    });
+// const ytmixer = (link, itag, options = {}) => {
+//   console.log("i am from ytmixer");
+//   return new Promise((resolve, reject) => {
+//     const result = new stream.PassThrough({
+//       highWaterMark: options.highWaterMark || 1024 * 512,
+//     });
 
-    ytdl
-      .getInfo(link, options)
-      .then((info) => {
-        const videoFormat = info.formats.find((format) => format.itag === itag);
-        console.log(
-          "i am from and ytmixer videoFormat",
-          videoFormat ? "ava" : "not"
-        );
-        if (!videoFormat) {
-          throw new Error("No such format found");
-        }
+//     ytdl
+//       .getInfo(link, options)
+//       .then((info) => {
+//         const videoFormat = info.formats.find((format) => format.itag === itag);
+//         console.log(
+//           "i am from and ytmixer videoFormat",
+//           videoFormat ? "ava" : "not"
+//         );
+//         if (!videoFormat) {
+//           throw new Error("No such format found");
+//         }
 
-        const audioFormat = ytdl.chooseFormat(info.formats, {
-          quality: "highestaudio",
-        });
-        console.log(
-          "i am from and ytmixer audioFormat",
-          audioFormat ? "ava" : "not"
-        );
+//         const audioFormat = ytdl.chooseFormat(info.formats, {
+//           quality: "highestaudio",
+//         });
+//         console.log(
+//           "i am from and ytmixer audioFormat",
+//           audioFormat ? "ava" : "not"
+//         );
 
-        let totalContentLength =
-          parseInt(videoFormat.contentLength || 0) +
-          parseInt(audioFormat.contentLength || 0);
+//         let totalContentLength =
+//           parseInt(videoFormat.contentLength || 0) +
+//           parseInt(audioFormat.contentLength || 0);
 
-        let audioStream = ytdl.downloadFromInfo(info, {
-          ...options,
-          quality: "highestaudio",
-        });
-        let videoStream = ytdl.downloadFromInfo(info, {
-          ...options,
-          format: videoFormat,
-        });
+//         let audioStream = ytdl.downloadFromInfo(info, {
+//           ...options,
+//           quality: "highestaudio",
+//         });
+//         let videoStream = ytdl.downloadFromInfo(info, {
+//           ...options,
+//           format: videoFormat,
+//         });
 
-        let ffmpegProcess = cp.spawn(
-          ffmpegPath,
-          [
-            "-loglevel",
-            "8",
-            "-hide_banner",
-            "-i",
-            "pipe:3",
-            "-i",
-            "pipe:4",
-            "-map",
-            "0:a",
-            "-map",
-            "1:v",
-            "-c",
-            "copy",
-            "-f",
-            "mp4", // Change to mp4 format
-            "-movflags",
-            "frag_keyframe+empty_moov", // Add this line
-            "pipe:5",
-          ],
-          {
-            windowsHide: true,
-            stdio: ["inherit", "inherit", "inherit", "pipe", "pipe", "pipe"],
-          }
-        );
+//         let ffmpegProcess = cp.spawn(
+//           ffmpegPath,
+//           [
+//             "-loglevel",
+//             "8",
+//             "-hide_banner",
+//             "-i",
+//             "pipe:3",
+//             "-i",
+//             "pipe:4",
+//             "-map",
+//             "0:a",
+//             "-map",
+//             "1:v",
+//             "-c",
+//             "copy",
+//             "-f",
+//             "mp4", // Change to mp4 format
+//             "-movflags",
+//             "frag_keyframe+empty_moov", // Add this line
+//             "pipe:5",
+//           ],
+//           {
+//             windowsHide: true,
+//             stdio: ["inherit", "inherit", "inherit", "pipe", "pipe", "pipe"],
+//           }
+//         );
 
-        audioStream.pipe(ffmpegProcess.stdio[3]);
-        videoStream.pipe(ffmpegProcess.stdio[4]);
-        ffmpegProcess.stdio[5].pipe(result);
-        console.log("going to returm from ytmixer");
-        resolve({ stream: result, contentLength: totalContentLength });
-      })
-      .catch(reject);
-  });
-};
+//         audioStream.pipe(ffmpegProcess.stdio[3]);
+//         videoStream.pipe(ffmpegProcess.stdio[4]);
+//         ffmpegProcess.stdio[5].pipe(result);
+//         console.log("going to returm from ytmixer");
+//         resolve({ stream: result, contentLength: totalContentLength });
+//       })
+//       .catch(reject);
+//   });
+// };
 
 // with socket.io
 function improvedFormatMapping(info) {
@@ -275,7 +275,6 @@ function selectFormat(formats, targetItag, qualityPreference = "medium") {
   }
 }
 
-
 app.get("/download", async (req, res) => {
   // const clientId = req.query.clientId; // You'll need to send this from the client
 
@@ -335,11 +334,13 @@ app.get("/download", async (req, res) => {
       } else {
         let mylength = await ufs(format.url);
         res.setHeader("Content-Length", mylength);
-      }      downloadStream = ytdl(videoURL, { format });
+      }
+      downloadStream = ytdl(videoURL, { format });
     } else {
-      const {stream} = await ytmixer(videoURL, format.itag);
-      // contentLength = mixerContentLength;
-      downloadStream = stream;
+      res.setHeader("X-Error-Message", "Internal Server Error");
+      res
+        .status(500)
+        .json({ success: false, message: "Internal Server Error" });
     }
 
     // if (contentLength) {
@@ -453,7 +454,7 @@ app.get("/download-allreadyaudio", async (req, res) => {
   }
 });
 
-console.log("FFmpeg Path:", ffmpegPath);
+// console.log("FFmpeg Path:", ffmpegPath);
 
 // Start the server
 const PORT = process.env.PORT || 5000;
