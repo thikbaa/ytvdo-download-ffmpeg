@@ -102,7 +102,7 @@ app.get("/video-info", async (req, res) => {
     const audioFormat = ytdl.chooseFormat(info.formats, {
       quality: "highestaudio",
     });
-    res.json({ formats: info.formats, audioLength: audioFormat.contentLength });
+    res.json({ formats: info.formats.filter(item =>item.hasAudio && item.hasVideo), audioLength: audioFormat.contentLength , success:true , message:"data fetched " , videoDetails : info.videoDetails });
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");
